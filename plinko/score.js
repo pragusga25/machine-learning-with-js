@@ -1,5 +1,4 @@
 const outputs = [];
-const predictionPoint = 300;
 const k = 3;
 
 function onScoreUpdate(dropPosition, bounciness, size, bucketLabel) {
@@ -7,8 +6,21 @@ function onScoreUpdate(dropPosition, bounciness, size, bucketLabel) {
 }
 
 function runAnalysis() {
-  const bucket = _.chain(outputs)
-    .map((row) => [distance(row[0]), row[3]])
+  const testSize = 10;
+  const [training, test] = splitDataset(outputs, testSize);
+
+  const accuracy = _.chain(test)
+    .filter((testPoint) => knn(training, testPoint[0]) === testPoint[3])
+    .size()
+    .divide(testSize)
+    .value();
+
+  console.log(`Accuracy: ${accuracy}`);
+}
+
+function knn(dataset, point) {
+  return _.chain(dataset)
+    .map((row) => [distance(row[0], point), row[3]])
     .sortBy((row) => row[0])
     .slice(0, k)
     .countBy((row) => row[1])
@@ -18,19 +30,17 @@ function runAnalysis() {
     .first()
     .parseInt()
     .value();
-
-  console.log('Your ball will probably fall into ', bucket);
 }
 
-function distance(point) {
-  return Math.abs(point - predictionPoint);
+function distance(x, y) {
+  return Math.abs(x - y);
 }
 
 function splitDataset(dataset, testCount) {
   const shuffled = _.shuffle(dataset);
 
-  const testSet = _.slice(shuffled, testCount);
-  const trainingset = _.slice(shuffled, testCount);
+  const test = _.slice(shuffled, 0, testCount);
+  const training = _.slice(shuffled, testCount);
 
-  return [testSet, trainingset];
+  return [training, test];
 }
